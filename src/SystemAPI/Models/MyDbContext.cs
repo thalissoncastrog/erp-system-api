@@ -23,10 +23,12 @@ public class MyDbContext : DbContext
         var connectionString = _configuration.GetSection($"ConnectionStrings:{typeDataBase}").Value;
 
         var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-        if (!string.IsNullOrEmpty(connectionString) && !string.IsNullOrEmpty(databaseUrl))
+        if (string.IsNullOrEmpty(connectionString) || string.IsNullOrEmpty(databaseUrl))
         {
-            connectionString = connectionString.Replace("${DATABASE_URL}", databaseUrl);
+            throw new ArgumentException("The environment variable is not defined");
         }
+
+        connectionString = connectionString.Replace("${DATABASE_URL}", databaseUrl);
 
         if (typeDataBase == "SqlServer")
         {
