@@ -11,5 +11,5 @@ CREATE TABLE clients(
     birth_date DATE NOT NULL,
     age INT NOT NULL,
     city_id INT,
-    FOREIGN KEY (city_id) REFERENCES cities(city_id)
+    CONSTRAINT FK_Clients_Cities FOREIGN KEY (city_id) REFERENCES cities(city_id)
 );
