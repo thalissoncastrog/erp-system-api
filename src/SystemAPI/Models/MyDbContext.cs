@@ -1,13 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using SystemAPI.Models;
+using SystemAPI.Models.Entities;
 using DotNetEnv;
 
 public class MyDbContext : DbContext
 {
     private IConfiguration _configuration;
 
-    public DbSet<User> Users { get; set; }
+    public DbSet<City> Cities { get; set; }
+    public DbSet<Client> Clients { get; set; }
 
     public MyDbContext(IConfiguration configuration, DbContextOptions options) : base(options)
     {
@@ -34,5 +35,13 @@ public class MyDbContext : DbContext
         {
             optionsBuilder.UseSqlServer(connectionString);
         }
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<City>()
+            .HasMany(c => c.Clients)
+            .WithOne(e => e.City)
+            .HasForeignKey(e => e.CityId);
     }
 }
