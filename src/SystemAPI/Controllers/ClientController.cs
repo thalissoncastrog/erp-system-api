@@ -22,33 +22,114 @@ namespace SystemAPI.Controllers
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<ActionResult<IEnumerable<ClientDTO>>> GetClients()
         {
-            var clients = _db.Clients.ToList();
-            return Ok(clients);
-        }
-
-        [HttpPost]
-        public IActionResult Add([FromBody] Client client)
-        {
-            var clients = _db.Clients.Add(client);
-            _db.SaveChanges();
-
-            return CreatedAtAction("GetClient", new { id = client.ClientId }, client);
+            return await _db.Clients
+                .Select(x => ClientToDTO(x))
+                .ToListAsync();
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetClient(int id)
+        public async Task<ActionResult<ClientDTO>> GetClient(int id)
         {
-            var client = _db.Clients.Include(c => c.City).FirstOrDefault(c => c.ClientId == id);
+
+            var client = await _db.Clients.FindAsync(id);
 
             if (client == null)
             {
                 return NotFound();
             }
 
-            return Ok(client);
+            return ClientToDTO(client);
         }
+
+        [HttpPost]
+        public async Task<ActionResult<ClientDTO>> AddClient([FromBody] ClientDTO clientDTO)
+        {
+            var client = new Client
+            {
+                ClientId = clientDTO.ClientId,
+                Name = clientDTO.Name,
+                Gender = clientDTO.Gender,
+                BirthDate = clientDTO.BirthDate,
+                Age = clientDTO.Age,
+                CityId = clientDTO.CityId
+            };
+
+            _db.Clients.Add(client);
+            await _db.SaveChangesAsync();
+
+            return CreatedAtAction(
+                nameof(GetClient),
+                new { id = client.ClientId },
+                ClientToDTO(client));
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutClient(int id, ClientDTO clientDTO)
+        {
+            if (id != clientDTO.ClientId)
+            {
+                return BadRequest();
+            }
+
+            var client = await _db.Clients.FindAsync(id);
+
+            if (client == null)
+            {
+                return NotFound();
+            }
+
+            client.Name = clientDTO.Name;
+            client.Gender = clientDTO.Gender;
+            client.BirthDate = clientDTO.BirthDate;
+            client.Age = clientDTO.Age;
+            client.CityId = clientDTO.CityId;
+
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException) when (!ClientExists(id))
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteClient(int id)
+        {
+            var client = await _db.Clients.FindAsync(id);
+
+            if (client == null)
+            {
+                return NotFound();
+            }
+
+            _db.Clients.Remove(client);
+            await _db.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool ClientExists(int id)
+        {
+            return _db.Clients.Any(e => e.ClientId == id);
+        }
+
+        private static ClientDTO ClientToDTO(Client client) =>
+            new ClientDTO
+            {
+                ClientId = client.ClientId,
+                Name = client.Name,
+                Gender = client.Gender,
+                BirthDate = client.BirthDate,
+                Age = client.Age,
+                CityId = client.CityId
+            };
 
         //public ClientController(SystemContext context)
         //{

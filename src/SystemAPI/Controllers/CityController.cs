@@ -22,33 +22,103 @@ namespace SystemAPI.Controllers
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<ActionResult<IEnumerable<CityDTO>>> GetCities()
         {
-            var cities = _db.Cities.ToList();
-            return Ok(cities);
-        }
-
-        [HttpPost]
-        public IActionResult Add([FromBody] City city)
-        {
-            var cities = _db.Cities.Add(city);
-            _db.SaveChanges();
-
-            return CreatedAtAction("GetCity", new { id = city.City_Id }, city);
+            return await _db.Cities
+                .Select(x => CityToDTO(x))
+                .ToListAsync();
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetCity(int id)
+        public async Task<ActionResult<CityDTO>> GetCity(int id)
         {
-            var city = _db.Cities.FirstOrDefault(c => c.City_Id == id);
+            var city = await _db.Cities.FindAsync(id);
 
             if (city == null)
             {
                 return NotFound();
             }
 
-            return Ok(city);
+            return CityToDTO(city);
         }
+
+        [HttpPost]
+        public async Task<ActionResult<CityDTO>> AddCity([FromBody] CityDTO cityDTO)
+        {
+            var city = new City
+            {
+                City_Id = cityDTO.City_Id,
+                Name = cityDTO.Name,
+                State = cityDTO.State
+            };
+
+            _db.Cities.Add(city);
+            await _db.SaveChangesAsync();
+
+            return CreatedAtAction(
+                nameof(GetCity),
+                new { id = city.City_Id },
+                CityToDTO(city));
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutCity(int id, CityDTO cityDTO)
+        {
+            if (id != cityDTO.City_Id)
+            {
+                return BadRequest();
+            }
+
+            var city = await _db.Cities.FindAsync(id);
+
+            if (city == null)
+            {
+                return NotFound();
+            }
+
+            city.Name = cityDTO.Name;
+            city.State = cityDTO.State;
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException) when (!CityExists(id))
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCity(int id)
+        {
+            var city = await _db.Cities.FindAsync(id);
+
+            if(city == null)
+            {
+                return NotFound();
+            }
+
+            _db.Cities.Remove(city);
+            await _db.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool CityExists(int id)
+        {
+            return _db.Cities.Any(e => e.City_Id == id);
+        }
+
+        private static CityDTO CityToDTO(City city) =>
+            new CityDTO
+            {
+                City_Id = city.City_Id,
+                Name = city.Name,
+                State = city.State,
+            };
     }
     //public CityController(SystemContext context)
     //{
