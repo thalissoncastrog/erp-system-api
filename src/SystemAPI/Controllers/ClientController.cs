@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Mono.TextTemplating;
 using SystemAPI.Models.Entities;
 
 namespace SystemAPI.Controllers
@@ -22,11 +23,9 @@ namespace SystemAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ClientDTO>>> GetClients()
+        public async Task<ActionResult<IEnumerable<Client>>> GetClients()
         {
-            return await _db.Clients
-                .Select(x => ClientToDTO(x))
-                .ToListAsync();
+            return await _db.Clients.ToListAsync();
         }
 
         [HttpGet("{id}")]
@@ -43,12 +42,27 @@ namespace SystemAPI.Controllers
             return ClientToDTO(client);
         }
 
+        [HttpGet("byname/{name}")]
+        public async Task<ActionResult<IEnumerable<ClientDTO>>> GetClientByName(string name)
+        {
+            var clients = await _db.Clients
+                                   .Where(c => c.Name.ToLower() == name.ToLower())
+                                    .ToListAsync();
+
+            if (!clients.Any())
+            {
+                return NotFound();
+            }
+
+            var clientsDTO = clients.Select(client => ClientToDTO(client)).ToList();
+            return clientsDTO;
+        }
+
         [HttpPost]
         public async Task<ActionResult<ClientDTO>> AddClient([FromBody] ClientDTO clientDTO)
         {
             var client = new Client
             {
-                ClientId = clientDTO.ClientId,
                 Name = clientDTO.Name,
                 Gender = clientDTO.Gender,
                 BirthDate = clientDTO.BirthDate,
@@ -66,12 +80,8 @@ namespace SystemAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutClient(int id, ClientDTO clientDTO)
+        public async Task<IActionResult> PutClient(int id, UpdateClientNameDTO clientUpadateDTO)
         {
-            if (id != clientDTO.ClientId)
-            {
-                return BadRequest();
-            }
 
             var client = await _db.Clients.FindAsync(id);
 
@@ -80,20 +90,24 @@ namespace SystemAPI.Controllers
                 return NotFound();
             }
 
-            client.Name = clientDTO.Name;
-            client.Gender = clientDTO.Gender;
-            client.BirthDate = clientDTO.BirthDate;
-            client.Age = clientDTO.Age;
-            client.CityId = clientDTO.CityId;
+            client.Name = clientUpadateDTO.Name;
 
+            _db.Entry(client).State = EntityState.Modified;
 
             try
             {
                 await _db.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException) when (!ClientExists(id))
+            catch (DbUpdateConcurrencyException)
             {
-                return NotFound();
+                if (!ClientExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
             }
 
             return NoContent();
@@ -123,101 +137,11 @@ namespace SystemAPI.Controllers
         private static ClientDTO ClientToDTO(Client client) =>
             new ClientDTO
             {
-                ClientId = client.ClientId,
                 Name = client.Name,
                 Gender = client.Gender,
                 BirthDate = client.BirthDate,
                 Age = client.Age,
                 CityId = client.CityId
             };
-
-        //public ClientController(SystemContext context)
-        //{
-        //    _context = context;
-        //}
-
-        //// GET: api/Clients
-        //[HttpGet]
-        //public async Task<ActionResult<IEnumerable<Client>>> GetClients()
-        //{
-        //    return await _context.Clients.ToListAsync();
-        //}
-
-        //// GET: api/Clients/5
-        //[HttpGet("{id}")]
-        //public async Task<ActionResult<Client>> GetClient(long id)
-        //{
-        //    var client = await _context.Clients.FindAsync(id);
-
-        //    if (client == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return client;
-        //}
-
-        //// PUT: api/Clients/5
-        //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        //[HttpPut("{id}")]
-        //public async Task<IActionResult> PutClient(long id, Client client)
-        //{
-        //    if (id != client.Id)
-        //    {
-        //        return BadRequest();
-        //    }
-
-        //    _context.Entry(client).State = EntityState.Modified;
-
-        //    try
-        //    {
-        //        await _context.SaveChangesAsync();
-        //    }
-        //    catch (DbUpdateConcurrencyException)
-        //    {
-        //        if (!ClientExists(id))
-        //        {
-        //            return NotFound();
-        //        }
-        //        else
-        //        {
-        //            throw;
-        //        }
-        //    }
-
-        //    return NoContent();
-        //}
-
-        //// POST: api/Clients
-        //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        //[HttpPost]
-        //public async Task<ActionResult<Client>> PostClient(Client client)
-        //{
-        //    _context.Clients.Add(client);
-        //    await _context.SaveChangesAsync();
-
-        //    return CreatedAtAction("GetClient", new { id = client.Id }, client);
-        //}
-
-        //// DELETE: api/Clients/5
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> DeleteClient(long id)
-        //{
-        //    var client = await _context.Clients.FindAsync(id);
-        //    if (client == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    _context.Clients.Remove(client);
-        //    await _context.SaveChangesAsync();
-
-        //    return NoContent();
-        //}
-
-        //private bool ClientExists(long id)
-        //{
-        //    return _context.Clients.Any(e => e.Id == id);
-        //}
     }
 }

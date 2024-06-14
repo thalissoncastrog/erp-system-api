@@ -39,9 +39,49 @@ public class MyDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Configuração da entidade City
         modelBuilder.Entity<City>()
-            .HasMany(c => c.Clients)
-            .WithOne(e => e.City)
-            .HasForeignKey(e => e.CityId);
+            .HasKey(city => city.City_Id);
+
+        modelBuilder.Entity<City>()
+            .Property(city => city.Name)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<City>()
+            .Property(city => city.State)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        // Configuração da entidade Client
+        modelBuilder.Entity<Client>()
+            .HasKey(client => client.ClientId);
+
+        modelBuilder.Entity<Client>()
+            .Property(client => client.Name)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<Client>()
+            .Property(client => client.Gender)
+            .IsRequired()
+            .HasMaxLength(1);
+
+        modelBuilder.Entity<Client>()
+            .Property(client => client.BirthDate)
+            .IsRequired();
+
+        modelBuilder.Entity<Client>()
+            .Property(client => client.Age)
+            .IsRequired();
+
+        // Relacionamento entre Client e City
+        modelBuilder.Entity<Client>()
+            .HasOne(client => client.City)
+            .WithMany(city => city.Clients)
+            .HasForeignKey(client => client.CityId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        base.OnModelCreating(modelBuilder);
     }
 }

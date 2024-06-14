@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Mono.TextTemplating;
 using SystemAPI.Models.Entities;
 
 namespace SystemAPI.Controllers
@@ -13,7 +14,6 @@ namespace SystemAPI.Controllers
     [Route("[controller]")]
     public class CityController : ControllerBase
     {
-        //private readonly SystemContext _context;
         private MyDbContext _db;
 
         public CityController(MyDbContext db)
@@ -42,14 +42,43 @@ namespace SystemAPI.Controllers
             return CityToDTO(city);
         }
 
+        [HttpGet("byname/{name}")]
+        public async Task<ActionResult<CityDTO>> GetCityByName(string name)
+        {
+            var city = await _db.Cities
+                                   .FirstOrDefaultAsync(c => c.Name.ToLower() == name.ToLower());
+
+            if (city == null)
+            {
+                return NotFound();
+            }
+
+            return CityToDTO(city);
+        }
+
+        [HttpGet("bystate/{state}")]
+        public async Task<ActionResult<IEnumerable<CityDTO>>> GetCityByState(string state)
+        {
+            var cities = await _db.Cities
+                                    .Where(c => c.State.ToLower() == state.ToLower())
+                                    .ToListAsync();
+
+            if (!cities.Any())
+            {
+                return NotFound();
+            }
+
+            var citiesDTO = cities.Select(city => CityToDTO(city)).ToList();
+            return citiesDTO;
+        }
+
         [HttpPost]
-        public async Task<ActionResult<CityDTO>> AddCity([FromBody] CityDTO cityDTO)
+        public async Task<ActionResult<PostCityDTO>> AddCity([FromBody] PostCityDTO postCityDTO)
         {
             var city = new City
             {
-                City_Id = cityDTO.City_Id,
-                Name = cityDTO.Name,
-                State = cityDTO.State
+                Name = postCityDTO.Name,
+                State = postCityDTO.State
             };
 
             _db.Cities.Add(city);
@@ -62,12 +91,8 @@ namespace SystemAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCity(int id, CityDTO cityDTO)
+        public async Task<IActionResult> PutCity(int id, PostCityDTO cityDTO)
         {
-            if (id != cityDTO.City_Id)
-            {
-                return BadRequest();
-            }
 
             var city = await _db.Cities.FindAsync(id);
 
@@ -100,9 +125,17 @@ namespace SystemAPI.Controllers
             {
                 return NotFound();
             }
-
+            
             _db.Cities.Remove(city);
-            await _db.SaveChangesAsync();
+           
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return BadRequest();
+            }
 
             return NoContent();
         }
@@ -120,93 +153,5 @@ namespace SystemAPI.Controllers
                 State = city.State,
             };
     }
-    //public CityController(SystemContext context)
-    //{
-    //    _context = context;
-    //}
-
-    // GET: api/Cities
-    //[HttpGet]
-    // public async Task<ActionResult<IEnumerable<City>>> GetCities()
-    // {
-    //     return await _context.Cities.ToListAsync();
-    // }
-
-    // GET: api/Cities/5
-    // [HttpGet("{id}")]
-    // public async Task<ActionResult<City>> GetCity(long id)
-    // {
-    //     var city = await _context.Cities.FindAsync(id);
-
-    //     if (city == null)
-    //     {
-    //         return NotFound();
-    //     }
-
-    //     return city;
-    // }
-
-    // PUT: api/Cities/5
-    //  To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    // [HttpPut("{id}")]
-    // public async Task<IActionResult> PutCity(long id, City city)
-    // {
-    //     if (id != city.Id)
-    //     {
-    //         return BadRequest();
-    //     }
-
-    //     _context.Entry(city).State = EntityState.Modified;
-
-    //     try
-    //     {
-    //         await _context.SaveChangesAsync();
-    //     }
-    //     catch (DbUpdateConcurrencyException)
-    //     {
-    //         if (!CityExists(id))
-    //         {
-    //             return NotFound();
-    //         }
-    //         else
-    //         {
-    //             throw;
-    //         }
-    //     }
-
-    //     return NoContent();
-    // }
-
-    // POST: api/Cities
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-    // [HttpPost]
-    // public async Task<ActionResult<City>> PostCity(City city)
-    // {
-    //     _context.Cities.Add(city);
-    //     await _context.SaveChangesAsync();
-
-    //     return CreatedAtAction(nameof(GetCity), new { id = city.Id }, city);
-    // }
-
-    // DELETE: api/Cities/5
-    // [HttpDelete("{id}")]
-    // public async Task<IActionResult> DeleteCity(long id)
-    // {
-    //     var city = await _context.Cities.FindAsync(id);
-    //     if (city == null)
-    //     {
-    //         return NotFound();
-    //     }
-
-    //     _context.Cities.Remove(city);
-    //     await _context.SaveChangesAsync();
-
-    //     return NoContent();
-    // }
-
-    // private bool CityExists(long id)
-    // {
-    //     return _context.Cities.Any(e => e.Id == id);
-    // }
 }
 

@@ -2,10 +2,8 @@
 
 namespace SystemAPI.Models.Entities
 {
-    public class CityDTO
+    public class PostCityDTO
     {
-        public int City_Id { get; set; }
-
         public string Name { get; set; }
 
         public string State { get; set; }
