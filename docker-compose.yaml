@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  sqlserver:
+    image: thalissoncastrog/sqlserver:1.0.0
+    ports:
+      - "1434:1433"
+    volumes:
+      - ./db:/db
+    hostname: sqlserver
+    container_name: sqlserver
+    restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

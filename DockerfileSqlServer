@@ -1,0 +1,15 @@
+# Use a imagem base do SQL Server
+FROM mcr.microsoft.com/mssql/server:2022-CU11-ubuntu-22.04
+
+# Copie o script SQL para dentro do contêiner
+COPY sql/init.sql /docker-entrypoint-initdb.d/
+
+# Defina as variáveis de ambiente necessárias
+ENV MSSQL_SA_PASSWORD=<YOUR_PASSWORD>
+ENV ACCEPT_EULA=Y
+ENV MSSQL_PID=Express
+
+# CMD para execução do script SQL após o SQL Server estar pronto
+RUN /opt/mssql/bin/sqlservr & sleep 100s \
+    && /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $MSSQL_SA_PASSWORD -i /docker-entrypoint-initdb.d/init.sql \
+    || exit 1
