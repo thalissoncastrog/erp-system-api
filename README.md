@@ -56,15 +56,32 @@ $ cd erp-system-api
 # Do the next commands as root user
 $ sudo su
 
-# Create a docker image from Dockerfile
-$ docker build -t api-controllers-dotnet:1.0.0 .
+#Before this next command, put a password in the DockerfileSqlServer
+# Create a image to run a sql server container
+$ docker build -t thalissoncastrog/sqlserver:1.0.0 -f DockerfileSqlServer .
 
 # Create a container from the image created before
-$ docker run -d -p 8080:8080 api-controllers-dotnet:1.0.0
+$ docker run -d -p 1434:1433 thalissoncastrog/sqlserver:1.0.0
+
+# Go into the solution folder
+$ cd src/SystemAPI
+
+# Install dependencies
+$ dotnet restore
+
+# Create a .ENV file to setup your string connection to database
+$ mkdir .env
+
+#The PASSWORD is the same in DockerfileSqlServer
+# Put your string connection in .env file:
+DATABASE_URL="Server=localhost,1434;Database=SystemApiDB;User Id=userSystemAPI;Password=<YOUR_PASSWORD>;Trusted_Connection=False;TrustServerCertificate=True;"
+
+# Run the app
+$ dotnet run
 ```
 
 > **Note**
-> After run each command above, go to a web browser and access this url: [http://localhost:8080/swagger](http://localhost:8080/swagger).
+> After run each command above, go to a web browser and access this url: http://localhost:[port]/swagger.
 
 ## License
 
