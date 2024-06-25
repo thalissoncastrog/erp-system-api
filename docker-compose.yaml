@@ -1,17 +1,24 @@
-version: "3.8"
-
 services:
+  system-api:
+    image: thalissoncastrog/system-api-dotnet:1.0.1
+    env_file:
+      - ./src/SystemAPI/.env
+    ports:
+      - "8080:8080"
+    depends_on: ["sqlserver"]
+    networks:
+      app-network:
+
   sqlserver:
-    image: thalissoncastrog/sqlserver:1.0.0
+    image: thalissoncastrog/sqlserver:1.0.1
     ports:
       - "1434:1433"
-    volumes:
-      - ./db:/db
     hostname: sqlserver
     container_name: sqlserver
-    restart: always
     networks:
-      - app-network
+      app-network:
+        aliases:
+          - "sqlserver"
 
 networks:
   app-network:
